@@ -15,6 +15,7 @@ class GUI:
 
 	def __init__(self):
 		self.etfsGUIInput = StringVar()
+		#self.progress = IntVar()
 		self.rootURLNum = IntVar()
 		self.rootURLStr = StringVar()
 		self.GUIETFList = []
@@ -23,22 +24,28 @@ class GUI:
 
 	def init_window(self):
 		directions = StringVar()
-		label = Label(master, textvariable=directions )
-		directions.set("Select the site you want to scrape, and enter up to 25 ETFs at a time.\n Seperate each ETFs with a comma.\n")
-		label.pack()
+		label = Label(master, textvariable=directions, font = "Arial 15 " )
+		directions.set("Select the web site you want to get data from. Enter the ticker symbol(s) you want seperated by commas.\n Enter up to 25 ETFs at a time.")
+		label.config(background="#C1CDCD")
+		label.pack( padx=10, pady=15, fill=X)
 
-		etfEntry = Entry(master, textvariable=self.etfsGUIInput)
-   			
+		etfEntry = Entry(master, textvariable=self.etfsGUIInput, font = "Arial 14 bold")	
 
-		R1 = Radiobutton(master, text="etf.com", variable=self.rootURLNum, value=1)
-		R1.pack( padx=5, pady=5)
+		R1 = Radiobutton(master, text="etf.com", variable=self.rootURLNum, value=1, font = "Arial 14 bold ")
+		R1.config(background="#C1CDCD")
+		R1.pack(  padx=5, pady=5)
 
-		R2 = Radiobutton(master, text="maxfunds.com", variable=self.rootURLNum, value=2)
+		R2 = Radiobutton(master, text="maxfunds.com", variable=self.rootURLNum, value=2, font = "Arial 14 bold ")
+		R2.config(background="#C1CDCD")
 		R2.pack( padx=5, pady=5)
 
-		R3 = Radiobutton(master, text="Smartmoney.com", variable=self.rootURLNum, value=3)
+		R3 = Radiobutton(master, text="Smartmoney.com", variable=self.rootURLNum, value=3, font = "Arial 14 bold ")
+		R3.config(background="#C1CDCD")
 		R3.pack( padx=5, pady=10)
 
+		#Displays the index of the current etf being searched for 
+		#l = Label(master, textvariable=self.progress)
+		#l.pack(padx=5, pady=5, fill=X)
 
 		def cleanAndReturnListofEtfs():
 			self.GUIETFList = self.etfsGUIInput.get()
@@ -57,9 +64,10 @@ class GUI:
 			baseURL = self.rootURLStr
 			etfList =  self.GUIETFList
 			row = 0
-
+			
 			for etfSymbol in etfList:
 				row += 1
+				#self.progress.set(etfList.index(etfSymbol))
 				print "-------Starting Data Collection for " + etfSymbol + " ---------"
 				myEtf = getEtfInfo(etfSymbol, row, baseURL)
 				myEtf.getData()
@@ -73,14 +81,23 @@ class GUI:
  				elif(baseURL == "http://www.marketwatch.com/investing/Fund/"):
 					myEtf.smartmoneyDotComeInfo()
 				print "-------Data Collection Complete for " + etfSymbol + " ---------"
-
+				master.update_idletasks()
 			#close the window 
 			master.destroy()
 
-		etfSubmitBtn = Button(master, text="Get Data", command=cleanAndReturnListofEtfs)
+		
+		
 
-		etfEntry.pack(padx=5, pady=5)
-		etfSubmitBtn.pack(padx=5, pady=5)	
+		etfSubmitBtn = Button(master, text="Get Data", command=cleanAndReturnListofEtfs, font = "Arial 16 ")
+
+		etfEntry.pack(padx=5, pady=5, fill=X)
+		etfEntry.config(background="white")
+		etfSubmitBtn.pack(padx=5, pady=10)
+		etfSubmitBtn.config(highlightbackground="#C1CDCD")
+
+		
+      
+            	
 #------------------------------------ getEtfInfo ------------------------------------------------------------------------------------------
 class getEtfInfo:
 	def __init__(self, etfSymbol, row, baseURL):
@@ -257,7 +274,8 @@ class getEtfInfo:
 #Starts the application 
 def callToGo():
 	#Sets the height and width of the window
-	master.geometry("600x300") 
+	master.geometry("800x300") 
+	master.configure(background='#C1CDCD')
 	#Inits the application 
 	app = GUI()
 	#sets up the Tkinter window
