@@ -4,54 +4,60 @@ from bs4 import BeautifulSoup
 from Tkinter import *
 import xlsxwriter
 import os
+import stopwatch
 
 master = Tk()
 #Need to open the excel file first, because if we open it inside the allETFInfo class it only writes the last etf entered
 workbook = xlsxwriter.Workbook('ETFRatings.xlsx')
 worksheet = workbook.add_worksheet()
-
+"""
+Class Level Variables:
+	self.master
+	self.etfsGUIInput
+	self.rootURLNum
+	self.GUIETFList
+	self.rootURLStr
+	self.etfSymbol 
+	self.row 
+	self.baseURL 
+	self.soup
+"""
 #------------------------------------ GUI ------------------------------------------------------------------------------------------
 class GUI:
 
 	def __init__(self):
-		self.etfsGUIInput = StringVar()
-		#self.progress = IntVar()
-		self.rootURLNum = IntVar()
-		self.rootURLStr = StringVar()
-		self.GUIETFList = []
 		self.master = master
-		self.master.title("ETF Data Scraper")
 
 	def init_window(self):
-		directions = StringVar()
-		label = Label(master, textvariable=directions, font = "Arial 15 " )
-		directions.set("Select the web site you want to get data from. Enter the ticker symbol(s) you want seperated by commas.\n Enter up to 25 ETFs at a time.")
-		label.config(background="#C1CDCD")
-		label.pack( padx=10, pady=15, fill=X)
+		self.master.title("ETF Data Scraper")
+		directionsText = StringVar()
+		DirectionLabel = Label(master, textvariable=directionsText, font = "Arial 15 " )
+		directionsText.set("Select the web site you want to get data from. Enter the ticker symbol(s) you want seperated by commas.\n Enter up to 25 ETFs at a time.")
+		DirectionLabel.config(background="#C1CDCD")
+		DirectionLabel.pack( padx=10, pady=15, fill=X)
 
+		self.etfsGUIInput = StringVar()
 		etfEntry = Entry(master, textvariable=self.etfsGUIInput, font = "Arial 14 bold")	
 
-		R1 = Radiobutton(master, text="etf.com", variable=self.rootURLNum, value=1, font = "Arial 14 bold ")
-		R1.config(background="#C1CDCD")
-		R1.pack(  padx=5, pady=5)
+		self.rootURLNum = IntVar()
+		etfRadioBtn = Radiobutton(master, text="etf.com", variable=self.rootURLNum, value=1, font = "Arial 14 bold ")
+		etfRadioBtn.config(background="#C1CDCD")
+		etfRadioBtn.pack(  padx=5, pady=5)
 
-		R2 = Radiobutton(master, text="maxfunds.com", variable=self.rootURLNum, value=2, font = "Arial 14 bold ")
-		R2.config(background="#C1CDCD")
-		R2.pack( padx=5, pady=5)
+		maxFundsRadioBtn = Radiobutton(master, text="maxfunds.com", variable=self.rootURLNum, value=2, font = "Arial 14 bold ")
+		maxFundsRadioBtn.config(background="#C1CDCD")
+		maxFundsRadioBtn.pack( padx=5, pady=5)
 
-		R3 = Radiobutton(master, text="Smartmoney.com", variable=self.rootURLNum, value=3, font = "Arial 14 bold ")
-		R3.config(background="#C1CDCD")
-		R3.pack( padx=5, pady=10)
-
-		#Displays the index of the current etf being searched for 
-		#l = Label(master, textvariable=self.progress)
-		#l.pack(padx=5, pady=5, fill=X)
+		smartMoneyRadioBtn = Radiobutton(master, text="Smartmoney.com", variable=self.rootURLNum, value=3, font = "Arial 14 bold ")
+		smartMoneyRadioBtn.config(background="#C1CDCD")
+		smartMoneyRadioBtn.pack( padx=5, pady=10)
 
 		def cleanAndReturnListofEtfs():
+			self.GUIETFList = []
 			self.GUIETFList = self.etfsGUIInput.get()
 			self.GUIETFList = self.GUIETFList.split(', ')
-			#print self.GUIETFList
-			#print type(self.GUIETFList)
+			self.rootURLStr = StringVar()
+
 			self.rootURLNum = self.rootURLNum.get()
 			if(self.rootURLNum == 1):
 				self.rootURLStr = "http://www.etf.com/"
@@ -60,33 +66,26 @@ class GUI:
 			elif(self.rootURLNum == 3):
 				self.rootURLStr = "http://www.marketwatch.com/investing/Fund/"
 			
-
-			baseURL = self.rootURLStr
-			etfList =  self.GUIETFList
 			row = 0
-			
-			for etfSymbol in etfList:
+			t = stopwatch.Timer()
+			for etfSymbol in self.GUIETFList:
 				row += 1
 				#self.progress.set(etfList.index(etfSymbol))
-				print "-------Starting Data Collection for " + etfSymbol + " ---------"
-				myEtf = getEtfInfo(etfSymbol, row, baseURL)
-				myEtf.getData()
+				myEtf = ETFDataCollector(etfSymbol, row, self.rootURLStr)
+				myEtf.parseTargetWebPage()
 				#use an if statement to find out which website we are scraping
- 				if(baseURL == "http://www.etf.com/"):
+ 				if(self.rootURLStr == "http://www.etf.com/"):
  					myEtf.etfDotComInfo()
 
- 				elif(baseURL == "http://www.maxfunds.com/funds/data.php?ticker="):
+ 				elif(self.rootURLStr == "http://www.maxfunds.com/funds/data.php?ticker="):
  					myEtf.maxfundsDotComInfo()
 
- 				elif(baseURL == "http://www.marketwatch.com/investing/Fund/"):
+ 				elif(self.rootURLStr == "http://www.marketwatch.com/investing/Fund/"):
 					myEtf.smartmoneyDotComeInfo()
-				print "-------Data Collection Complete for " + etfSymbol + " ---------"
-				master.update_idletasks()
+			t.stop()
+			print t.elapsed
 			#close the window 
 			master.destroy()
-
-		
-		
 
 		etfSubmitBtn = Button(master, text="Get Data", command=cleanAndReturnListofEtfs, font = "Arial 16 ")
 
@@ -94,18 +93,15 @@ class GUI:
 		etfEntry.config(background="white")
 		etfSubmitBtn.pack(padx=5, pady=10)
 		etfSubmitBtn.config(highlightbackground="#C1CDCD")
-
-		
-      
-            	
-#------------------------------------ getEtfInfo ------------------------------------------------------------------------------------------
-class getEtfInfo:
+           	
+#------------------------------------ ETFDataCollector ------------------------------------------------------------------------------------------
+class ETFDataCollector:
 	def __init__(self, etfSymbol, row, baseURL):
 		self.etfSymbol = etfSymbol
 		self.row = row 
 		self.baseURL = baseURL
 
-	def getData(self):
+	def parseTargetWebPage(self):
 		#****The 3 web URLs aviable to scrape*****
 		#maxfunds: http://www.maxfunds.com/funds/data.php?ticker=VTSMX
 		#etf.com: http://www.etf.com/spy
@@ -114,9 +110,7 @@ class getEtfInfo:
 		#get document source code 
 		website = urllib2.urlopen(self.baseURL + self.etfSymbol)
 		sourceCode = website.read()
-		#make soup a global var, so it can be accessed later
-		global soup
-		soup = BeautifulSoup(sourceCode)
+		self.soup = BeautifulSoup(sourceCode)
 
 	def etfDotComInfo(self):
 		#Test funds: spy, qqq, vti, ivv, GLD, VOO, EEM
@@ -139,7 +133,7 @@ class getEtfInfo:
  		col = 0
 
 		#parse document to find etf name 
-		etfName = soup.find('h1', class_="etf")
+		etfName = self.soup.find('h1', class_="etf")
 		#extract etfName contents (etfTicker & etfLongName)
 		etfTicker = etfName.contents[0]
 		etfLongName = etfName.contents[1]
@@ -151,7 +145,7 @@ class getEtfInfo:
 		#print etfFullName
 
 		#get the time stamp for the data scraped 
-		etfInfoTimeStamp = soup.find('div', class_="footNote")
+		etfInfoTimeStamp = self.soup.find('div', class_="footNote")
 		dataTimeStamp = etfInfoTimeStamp.contents[1]
 		formatedTimeStamp =  'As of ' + dataTimeStamp.text
 		formatedTimeStamp = str(formatedTimeStamp)
@@ -161,7 +155,7 @@ class getEtfInfo:
 		etfScores = []
 		cleanEtfScoreList = []
 		#parse document to find all divs with the class score
-		etfScores = soup.find_all('div', class_="score")
+		etfScores = self.soup.find_all('div', class_="score")
 		#loop through etfScores to clean them and add them to the cleanedEtfScoreList
 		for etfScore in etfScores:
 			strippedEtfScore = etfScore.string.extract()
@@ -193,11 +187,11 @@ class getEtfInfo:
  		row = self.row
  		col = 0
  		#get ETFs name
- 		etfName = soup.find('div', class_="dataTop")
- 		etfName = soup.find('h2')
+ 		etfName = self.soup.find('div', class_="dataTop")
+ 		etfName = self.soup.find('h2')
  		etfName = str(etfName.text)
  		#get ETFs Max rating score
- 		etfMaxRating = soup.find('span', class_="maxrating")
+ 		etfMaxRating = self.soup.find('span', class_="maxrating")
  		etfMaxRating = str(etfMaxRating.text)
 
  		#create array to store name and rating 
@@ -230,10 +224,10 @@ class getEtfInfo:
  		row = self.row
  		col = 0
  		#get etf Name
- 		etfName = soup.find('h1', id="instrumentname")
+ 		etfName = self.soup.find('h1', id="instrumentname")
  		etfName = str(etfName.text)
  		#get etf Ticker
- 		etfTicker = soup.find('p', id="instrumentticker")
+ 		etfTicker = self.soup.find('p', id="instrumentticker")
  		etfTicker = str(etfTicker.text)
  		etfTicker = etfTicker.strip()
 
@@ -242,7 +236,7 @@ class getEtfInfo:
  		cleanedLipperScoreList.append(etfTicker)
 
  		#get Lipper scores ***NEEDS REFACTORING***
- 		lipperScores = soup.find('div', 'lipperleader')
+ 		lipperScores = self.soup.find('div', 'lipperleader')
  		lipperScores = str(lipperScores)
  		lipperScores = lipperScores.split('/>')
  		for lipperScore in lipperScores:
@@ -270,7 +264,9 @@ class getEtfInfo:
 			worksheet.write(self.row, col, cleanedLipperScore, format)
 			col += 1
 		col = 0
+
 #------------------------------------ CallToGo ------------------------------------------------------------------------------------------
+
 #Starts the application 
 def callToGo():
 	#Sets the height and width of the window
