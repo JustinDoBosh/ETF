@@ -22,6 +22,9 @@ Class Level Variables:
 	self.baseURL 
 	self.soup
 """
+
+#Run these ticker symbols for maxfund ---> CNSAX,ANZAX,FISCX,FACVX,PACIX,VCVSX,DEEAX,ACCBX,CLDAX
+
 #------------------------------------ GUI ------------------------------------------------------------------------------------------
 class GUI:
 
@@ -55,7 +58,7 @@ class GUI:
 		def cleanAndReturnListofEtfs():
 			self.GUIETFList = []
 			self.GUIETFList = self.etfsGUIInput.get()
-			self.GUIETFList = self.GUIETFList.split(', ')
+			self.GUIETFList = self.GUIETFList.split(',')
 			self.rootURLStr = StringVar()
 
 			self.rootURLNum = self.rootURLNum.get()
@@ -75,15 +78,34 @@ class GUI:
 				myEtf.parseTargetWebPage()
 				#use an if statement to find out which website we are scraping
  				if(self.rootURLStr == "http://www.etf.com/"):
- 					myEtf.etfDotComInfo()
+ 					try:
+ 						myEtf.etfDotComInfo()
+ 					except:
+ 						e = sys.exc_info()
+ 						print e 
+ 					else:
+ 						print "No problems scraping data for ticker symbol " + etfSymbol
 
  				elif(self.rootURLStr == "http://www.maxfunds.com/funds/data.php?ticker="):
- 					myEtf.maxfundsDotComInfo()
+ 					try:
+ 						print type(etfSymbol)
+ 						print etfSymbol
+ 						myEtf.maxfundsDotComInfo()
+ 					except AttributeError:
+ 						print "That Ticker Cannot Be Found - GUI"
+ 					else:
+ 						print "________No problems scraping data for ticker symbol " + etfSymbol
 
  				elif(self.rootURLStr == "http://www.marketwatch.com/investing/Fund/"):
-					myEtf.smartmoneyDotComeInfo()
+					try:
+ 						myEtf.smartmoneyDotComeInfo()
+ 					except:
+ 						e = sys.exc_info()[0]
+ 						print e
+ 					else:
+ 						print "No problems scraping data for ticker symbol " + etfSymbol
 			t.stop()
-			print t.elapsed
+			print str(t.elapsed) + " elapsed time"
 			#close the window 
 			master.destroy()
 
@@ -98,6 +120,7 @@ class GUI:
 class ETFDataCollector:
 	def __init__(self, etfSymbol, row, baseURL):
 		self.etfSymbol = etfSymbol
+		print self.etfSymbol + " start of class"
 		self.row = row 
 		self.baseURL = baseURL
 
@@ -108,12 +131,20 @@ class ETFDataCollector:
 		#Smartmoney: http://www.marketwatch.com/investing/Fund/OARMX
 
 		#get document source code 
-		website = urllib2.urlopen(self.baseURL + self.etfSymbol)
-		sourceCode = website.read()
-		self.soup = BeautifulSoup(sourceCode)
+		try:
+			website = urllib2.urlopen(self.baseURL + self.etfSymbol)
+			sourceCode = website.read()
+			self.soup = BeautifulSoup(sourceCode)
+		except AttributeError:
+			print "That Ticker Cannot Be Found - parsing"
+		else:
+			print "________Everything okay when parsing web site for ticker symbol " + self.etfSymbol
+			e = sys.exc_info()[0]
+			print e
+			print "________Everything okay when parsing web site for ticker symbol " + self.etfSymbol
 
 	def etfDotComInfo(self):
-		#Test funds: spy, qqq, vti, ivv, GLD, VOO, EEM
+		#Test funds: spy,qqq,vti,ivv,GLD,VOO,EEM
 		# Widen the first column to make the text clearer.
 		worksheet.set_column('A:E', 30)
 		#Add formating
@@ -171,7 +202,7 @@ class ETFDataCollector:
 		col = 0
 
 	def maxfundsDotComInfo(self):
-		#Test funds: VTIAX, PTTRX, PRFDX, DBLTX, TGBAX, FCNTX
+		#Test funds: VTIAX,PTTRX,PRFDX,DBLTX,TGBAX,FCNTX
 		# Widen the first column to make the text clearer.
 		worksheet.set_column('A:B', 40)
 		#Add formating
@@ -203,7 +234,7 @@ class ETFDataCollector:
 		col = 0
 
 	def smartmoneyDotComeInfo(self):
-		#Test funds: OAKLX, OAKGX, OARMX, OAKBX, OAKIX, OARIX
+		#Test funds: OAKLX,OAKGX,OARMX,OAKBX,OAKIX,OARIX
 		# Widen the first column to make the text clearer.
 		worksheet.set_column('A:G', 30)
 		#Add formating
