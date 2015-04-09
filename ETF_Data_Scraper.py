@@ -5,7 +5,7 @@ from Tkinter import *
 import xlsxwriter
 import os
 import stopwatch
-
+#Author Justin DoBosh <justin.dobosh@spartans.ut.edu>
 master = Tk()
 #Need to open the excel file first, because if we open it inside the allETFInfo class it only writes the last etf entered
 workbook = xlsxwriter.Workbook('ETFRatings.xlsx')
@@ -21,8 +21,8 @@ Class Level Variables:
 	self.row 
 	self.baseURL 
 	self.soup
+	self.ETFInfoToWrite
 """
-
 #Run these ticker symbols for maxfund ---> CNSAX,ANZAX,FISCX,FACVX,PACIX,VCVSX,DEEAX,ACCBX,CLDAX
 
 #------------------------------------ GUI ------------------------------------------------------------------------------------------
@@ -71,6 +71,7 @@ class GUI:
 			
 			row = 0
 			t = stopwatch.Timer()
+
 			for etfSymbol in self.GUIETFList:
 				row += 1
 				#self.progress.set(etfList.index(etfSymbol))
@@ -90,7 +91,6 @@ class GUI:
  						e = ""
  					else:
  						pass
-
  				elif(self.rootURLStr == "http://www.maxfunds.com/funds/data.php?ticker="):
  					try:
  						myEtf.maxfundsDotComInfo()
@@ -104,11 +104,9 @@ class GUI:
  						e = ""
  					else:
  						pass
- 						
-
  				elif(self.rootURLStr == "http://www.marketwatch.com/investing/Fund/"):
 					try:
- 						myEtf.smartmoneyDotComeInfo()
+ 						myEtf.smartmoneyDotComInfo()
  					except AttributeError:
  						e = sys.exc_info()[0]
  						print etfSymbol + " Cannot Be Found in GUI " + str(e)
@@ -125,7 +123,6 @@ class GUI:
 			master.destroy()
 
 		etfSubmitBtn = Button(master, text="Get Data", command=cleanAndReturnListofEtfs, font = "Arial 16 ")
-
 		etfEntry.pack(padx=5, pady=5, fill=X)
 		etfEntry.config(background="white")
 		etfSubmitBtn.pack(padx=5, pady=10)
@@ -137,13 +134,13 @@ class ETFDataCollector:
 		self.etfSymbol = etfSymbol
 		self.row = row 
 		self.baseURL = baseURL
+		self.ETFInfoToWrite = []
 
 	def parseTargetWebPage(self):
 		#****The 3 web URLs aviable to scrape*****
 		#maxfunds: http://www.maxfunds.com/funds/data.php?ticker=VTSMX
 		#etf.com: http://www.etf.com/spy
 		#Smartmoney: http://www.marketwatch.com/investing/Fund/OARMX
-
 		#get document source code 
 		try:
 			website = urllib2.urlopen(self.baseURL + self.etfSymbol)
@@ -159,27 +156,10 @@ class ETFDataCollector:
 			e = ""
 		else:
 			pass
-			
 
 	def etfDotComInfo(self):
 		#Test funds: spy,qqq,vti,ivv,GLD,VOO,EEM
-		# Widen the first column to make the text clearer.
-		worksheet.set_column('A:E', 30)
-		#Add formating
-		format = workbook.add_format()
-		format.set_text_wrap()
-		format.set_font_size(14)
-		format.set_font_name('Arial')
-		format.set_align('center')
-		# Write some data headers.
- 		worksheet.write('A1', 'ETF Name', format)
- 		worksheet.write('B1', 'Time Stamp', format)
- 		worksheet.write('C1', 'Efficiency', format)
- 		worksheet.write('D1', 'Tradability', format)
- 		worksheet.write('E1', 'Fit', format)
- 		# Start from the first cell below the headers.
- 		row = self.row
- 		col = 0
+		row = self.row
 
 		#parse document to find etf name 
 		etfName = self.soup.find('h1', class_="etf")
@@ -212,29 +192,15 @@ class ETFDataCollector:
 			cleanEtfScoreList.append(strippedEtfScore)
 		#turn cleanedEtfScoreList into a dictionary for easier access
 		
-		ETFInfoToWrite = [etfFullName, formatedTimeStamp, int(cleanEtfScoreList[0]), int(cleanEtfScoreList[1]), int(cleanEtfScoreList[2])]
-
-		for etf in ETFInfoToWrite:
-			worksheet.write(self.row, col, etf, format)
-			col += 1
-		col = 0
+		self.ETFInfoToWrite = [etfFullName, formatedTimeStamp, int(cleanEtfScoreList[0]), int(cleanEtfScoreList[1]), int(cleanEtfScoreList[2])]
+		ETFInfoToWrite = self.ETFInfoToWrite
+		excel = excelSetup(ETFInfoToWrite,row)
+		excel.etfInfoSetup()
+		
 
 	def maxfundsDotComInfo(self):
-		#Test funds: VTIAX,PTTRX,PRFDX,DBLTX,TGBAX,FCNTX
-		# Widen the first column to make the text clearer.
-		worksheet.set_column('A:B', 40)
-		#Add formating
-		format = workbook.add_format()
-		format.set_text_wrap()
-		format.set_font_size(14)
-		format.set_font_name('Arial')
-		format.set_align('center')
-		# Write some data headers.
- 		worksheet.write('A1', 'ETF Name', format)
- 		worksheet.write('B1', 'Max Rating', format)
- 		# Start from the first cell below the headers.
- 		row = self.row
- 		col = 0
+		#Test funds: VTIAX,PTTRX,PRFDX,DBLTX,TGBAX,FCNTX,CNSAX,ANZAX,FISCX,FACVX,PACIX,VCVSX,DEEAX,ACCBX,CLDAX
+		row = self.row
  		#get ETFs name
  		etfName = self.soup.find('div', class_="dataTop")
  		etfName = self.soup.find('h2')
@@ -244,34 +210,15 @@ class ETFDataCollector:
  		etfMaxRating = str(etfMaxRating.text)
 
  		#create array to store name and rating 
- 		ETFInfoToWrite = [etfName, int(etfMaxRating)]
+ 		self.ETFInfoToWrite = [etfName, int(etfMaxRating)]
+ 		ETFInfoToWrite = self.ETFInfoToWrite
+ 		excel = excelSetup(ETFInfoToWrite,row)
+		excel.maxfundsSetup()
 
- 		for etf in ETFInfoToWrite:
-			worksheet.write(self.row, col, etf, format)
-			col += 1
-		col = 0
-
-	def smartmoneyDotComeInfo(self):
+	def smartmoneyDotComInfo(self):
 		#Test funds: OAKLX,OAKGX,OARMX,OAKBX,OAKIX,OARIX
-		# Widen the first column to make the text clearer.
-		worksheet.set_column('A:G', 30)
-		#Add formating
-		format = workbook.add_format()
-		format.set_text_wrap()
-		format.set_font_size(14)
-		format.set_font_name('Arial')
-		format.set_align('center')
-		# Write some data headers.
-		worksheet.write('A1', 'Fund Name', format)
- 		worksheet.write('B1', 'Ticker Symbol', format)
- 		worksheet.write('C1', 'Total Return', format)
- 		worksheet.write('D1', 'Consistent Return', format)
- 		worksheet.write('E1', 'Preservation', format)
- 		worksheet.write('F1', 'Tax Efficiency', format)
- 		worksheet.write('G1', 'Expense', format)
- 		# Start from the first cell below the headers.
- 		row = self.row
- 		col = 0
+		row = self.row
+		
  		#get etf Name
  		etfName = self.soup.find('h1', id="instrumentname")
  		etfName = str(etfName.text)
@@ -280,9 +227,9 @@ class ETFDataCollector:
  		etfTicker = str(etfTicker.text)
  		etfTicker = etfTicker.strip()
 
- 		cleanedLipperScoreList = []
- 		cleanedLipperScoreList.append(etfName)
- 		cleanedLipperScoreList.append(etfTicker)
+
+ 		self.ETFInfoToWrite.append(etfName)
+ 		self.ETFInfoToWrite.append(etfTicker)
 
  		#get Lipper scores ***NEEDS REFACTORING***
  		lipperScores = self.soup.find('div', 'lipperleader')
@@ -307,15 +254,89 @@ class ETFDataCollector:
  			if lipperScoreNumber == '' and lipperScoreNumber == '':
  				pass
  			else:
- 				cleanedLipperScoreList.append(int(lipperScoreNumber))
+ 				self.ETFInfoToWrite.append(int(lipperScoreNumber))
 
- 		for cleanedLipperScore in cleanedLipperScoreList:
-			worksheet.write(self.row, col, cleanedLipperScore, format)
+ 		ETFInfoToWrite = self.ETFInfoToWrite
+ 		excel = excelSetup(ETFInfoToWrite,row)
+		excel.smartmoneySetup()
+
+#------------------------------------ excelSetup ------------------------------------------------------------------------------------------
+class excelSetup:
+	def __init__(self,ETFInfoToWrite,row):
+		self.ETFInfoToWrite = ETFInfoToWrite
+		self.row = row		
+
+	def etfInfoSetup(self):
+		# Widen the first column to make the text clearer.
+		worksheet.set_column('A:E', 30)
+		#Add formating
+		format = workbook.add_format()
+		format.set_text_wrap()
+		format.set_font_size(14)
+		format.set_font_name('Arial')
+		format.set_align('center')
+		# Write some data headers.
+ 		worksheet.write('A1', 'ETF Name', format)
+ 		worksheet.write('B1', 'Time Stamp', format)
+ 		worksheet.write('C1', 'Efficiency', format)
+ 		worksheet.write('D1', 'Tradability', format)
+ 		worksheet.write('E1', 'Fit', format)
+ 		# Start from the first cell below the headers.
+ 		row = self.row
+ 		col = 0
+
+ 		for etf in self.ETFInfoToWrite:
+			worksheet.write(self.row, col, etf, format)
 			col += 1
 		col = 0
 
-#------------------------------------ CallToGo ------------------------------------------------------------------------------------------
+	def maxfundsSetup(self):
+		# Widen the first column to make the text clearer.
+		worksheet.set_column('A:B', 40)
+		#Add formating
+		format = workbook.add_format()
+		format.set_text_wrap()
+		format.set_font_size(14)
+		format.set_font_name('Arial')
+		format.set_align('center')
+		# Write some data headers.
+ 		worksheet.write('A1', 'ETF Name', format)
+ 		worksheet.write('B1', 'Max Rating', format)
+ 		# Start from the first cell below the headers.
+ 		row = self.row
+ 		col = 0
 
+ 		for etf in self.ETFInfoToWrite:
+			worksheet.write(self.row, col, etf, format)
+			col += 1
+		col = 0
+
+	def smartmoneySetup(self):
+		# Widen the first column to make the text clearer.
+		worksheet.set_column('A:G', 30)
+		#Add formating
+		format = workbook.add_format()
+		format.set_text_wrap()
+		format.set_font_size(14)
+		format.set_font_name('Arial')
+		format.set_align('center')
+		# Write some data headers.
+		worksheet.write('A1', 'Fund Name', format)
+ 		worksheet.write('B1', 'Ticker Symbol', format)
+ 		worksheet.write('C1', 'Total Return', format)
+ 		worksheet.write('D1', 'Consistent Return', format)
+ 		worksheet.write('E1', 'Preservation', format)
+ 		worksheet.write('F1', 'Tax Efficiency', format)
+ 		worksheet.write('G1', 'Expense', format)
+ 		# Start from the first cell below the headers.
+ 		row = self.row
+ 		col = 0
+
+ 		for etf in self.ETFInfoToWrite:
+			worksheet.write(self.row, col, etf, format)
+			col += 1
+		col = 0
+#------------------------------------ CallToGo ------------------------------------------------------------------------------------------
 #Starts the application 
 def callToGo():
 	#Sets the height and width of the window
