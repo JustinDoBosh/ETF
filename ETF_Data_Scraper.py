@@ -80,30 +80,45 @@ class GUI:
  				if(self.rootURLStr == "http://www.etf.com/"):
  					try:
  						myEtf.etfDotComInfo()
+ 					except AttributeError:
+ 						e = sys.exc_info()[0]
+ 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
+ 						e = ""
  					except:
- 						e = sys.exc_info()
- 						print e 
+ 						e = sys.exc_info()[0]
+ 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
+ 						e = ""
  					else:
- 						print "No problems scraping data for ticker symbol " + etfSymbol
+ 						pass
 
  				elif(self.rootURLStr == "http://www.maxfunds.com/funds/data.php?ticker="):
  					try:
- 						print type(etfSymbol)
- 						print etfSymbol
  						myEtf.maxfundsDotComInfo()
  					except AttributeError:
- 						print "That Ticker Cannot Be Found - GUI"
+ 						e = sys.exc_info()[0]
+ 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
+ 						e = ""
+ 					except:
+ 						e = sys.exc_info()[0]
+ 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
+ 						e = ""
  					else:
- 						print "________No problems scraping data for ticker symbol " + etfSymbol
+ 						pass
+ 						
 
  				elif(self.rootURLStr == "http://www.marketwatch.com/investing/Fund/"):
 					try:
  						myEtf.smartmoneyDotComeInfo()
+ 					except AttributeError:
+ 						e = sys.exc_info()[0]
+ 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
+ 						e = ""
  					except:
  						e = sys.exc_info()[0]
- 						print e
+ 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
+ 						e = ""
  					else:
- 						print "No problems scraping data for ticker symbol " + etfSymbol
+ 						pass
 			t.stop()
 			print str(t.elapsed) + " elapsed time"
 			#close the window 
@@ -120,7 +135,6 @@ class GUI:
 class ETFDataCollector:
 	def __init__(self, etfSymbol, row, baseURL):
 		self.etfSymbol = etfSymbol
-		print self.etfSymbol + " start of class"
 		self.row = row 
 		self.baseURL = baseURL
 
@@ -136,12 +150,16 @@ class ETFDataCollector:
 			sourceCode = website.read()
 			self.soup = BeautifulSoup(sourceCode)
 		except AttributeError:
-			print "That Ticker Cannot Be Found - parsing"
-		else:
-			print "________Everything okay when parsing web site for ticker symbol " + self.etfSymbol
 			e = sys.exc_info()[0]
-			print e
-			print "________Everything okay when parsing web site for ticker symbol " + self.etfSymbol
+			print self.etfSymbol + " Cannot Be Found while parsing " + str(e)
+			e = ""
+		except:
+			e = sys.exc_info()[0]
+			print self.etfSymbol + " Cannot Be Found while parsing " + str(e)
+			e = ""
+		else:
+			pass
+			
 
 	def etfDotComInfo(self):
 		#Test funds: spy,qqq,vti,ivv,GLD,VOO,EEM
