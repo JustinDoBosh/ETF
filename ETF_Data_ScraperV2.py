@@ -3,13 +3,16 @@ from urllib2 import urlopen
 from bs4 import BeautifulSoup
 from Tkinter import *
 import xlsxwriter
+import xlrd
 import os
 import stopwatch
+from tkFileDialog import askopenfilename  
+
 #Author Justin DoBosh <justin.dobosh@spartans.ut.edu>
 master = Tk()
 #Need to open the excel file first, because if we open it inside the allETFInfo class it only writes the last etf entered
-workbook = xlsxwriter.Workbook('ETFRatings.xlsx')
-worksheet = workbook.add_worksheet()
+workbookToWriteTo = xlsxwriter.Workbook('ETFRatings.xlsx')
+worksheetToWriteTo  = workbookToWriteTo.add_worksheet()
 """
 Class Level Variables:
 	self.master
@@ -34,13 +37,13 @@ class GUI:
 	def init_window(self):
 		self.master.title("ETF Data Scraper")
 		directionsText = StringVar()
-		DirectionLabel = Label(master, textvariable=directionsText, font = "Arial 15 " )
-		directionsText.set("Select the web site you want to get data from. Enter the ticker symbol(s) you want seperated by commas.\n Enter up to 25 ETFs at a time.")
+		DirectionLabel = Label(master, textvariable=directionsText, font = "Arial 16 " )
+		directionsText.set("Select the web site you want to get data from. Then upload the excel file that contains \n the ticker symbols you want data for.")
 		DirectionLabel.config(background="#C1CDCD")
 		DirectionLabel.pack( padx=10, pady=15, fill=X)
 
-		self.etfsGUIInput = StringVar()
-		etfEntry = Entry(master, textvariable=self.etfsGUIInput, font = "Arial 14 bold")	
+		#self.etfsGUIInput = StringVar()
+		#etfEntry = Entry(master, textvariable=self.etfsGUIInput, font = "Arial 14 bold")	
 
 		self.rootURLNum = IntVar()
 		etfRadioBtn = Radiobutton(master, text="etf.com", variable=self.rootURLNum, value=1, font = "Arial 14 bold ")
@@ -56,9 +59,26 @@ class GUI:
 		smartMoneyRadioBtn.pack( padx=5, pady=10)
 
 		def cleanAndReturnListofEtfs():
-			self.GUIETFList = []
-			self.GUIETFList = self.etfsGUIInput.get()
-			self.GUIETFList = self.GUIETFList.split(',')
+			fundList = []
+			name = askopenfilename(filetypes = ( ("Excel", "*.xlsx" ), ("All files", "*.*")))
+			workbook = xlrd.open_workbook(name)
+			worksheet = workbook.sheet_by_name('Sheet1')
+			num_rows = worksheet.nrows - 1
+			num_cells = worksheet.ncols - 1
+			curr_row = -1
+			while curr_row < num_rows:
+				curr_row += 1
+				row = worksheet.row(curr_row)
+				#print 'Row:', curr_row
+				curr_cell = -1
+				while curr_cell < num_cells:
+					curr_cell += 1
+					# Cell Types: 0=Empty, 1=Text, 2=Number, 3=Date, 4=Boolean, 5=Error, 6=Blank
+					cell_type = worksheet.cell_type(curr_row, curr_cell)
+					cell_value = worksheet.cell_value(curr_row, curr_cell)
+					cell_value = str(cell_value)
+					fundList.append(cell_value)
+					
 			self.rootURLStr = StringVar()
 
 			self.rootURLNum = self.rootURLNum.get()
@@ -72,7 +92,7 @@ class GUI:
 			row = 0
 			t = stopwatch.Timer()
 
-			for etfSymbol in self.GUIETFList:
+			for etfSymbol in fundList:
 				row += 1
 				#self.progress.set(etfList.index(etfSymbol))
 				myEtf = ETFDataCollector(etfSymbol, row, self.rootURLStr)
@@ -122,9 +142,9 @@ class GUI:
 			#close the window 
 			master.destroy()
 
-		etfSubmitBtn = Button(master, text="Get Data", command=cleanAndReturnListofEtfs, font = "Arial 16 ")
-		etfEntry.pack(padx=5, pady=5, fill=X)
-		etfEntry.config(background="white")
+		etfSubmitBtn = Button(master, text="Choose File", command=cleanAndReturnListofEtfs, font = "Arial 16 ")
+		#etfEntry.pack(padx=5, pady=5, fill=X)
+		#etfEntry.config(background="white")
 		etfSubmitBtn.pack(padx=5, pady=10)
 		etfSubmitBtn.config(highlightbackground="#C1CDCD")
            	
@@ -169,8 +189,8 @@ class ETFDataCollector:
 		etfTicker = str(etfTicker)
 		etfLongName = etfLongName.text
 		etfLongName = str(etfLongName)
-		etfFullName = etfTicker + ' - ' + etfLongName
-		etfFullName = str(etfFullName)
+		#etfFullName = etfTicker + ' - ' + etfLongName
+		#etfFullName = str(etfFullName)
 		#print etfFullName
 
 		#get the time stamp for the data scraped 
@@ -192,7 +212,7 @@ class ETFDataCollector:
 			cleanEtfScoreList.append(strippedEtfScore)
 		#turn cleanedEtfScoreList into a dictionary for easier access
 		
-		self.ETFInfoToWrite = [etfFullName, formatedTimeStamp, int(cleanEtfScoreList[0]), int(cleanEtfScoreList[1]), int(cleanEtfScoreList[2])]
+		self.ETFInfoToWrite = [etfTicker, etfLongName, formatedTimeStamp, int(cleanEtfScoreList[0]), int(cleanEtfScoreList[1]), int(cleanEtfScoreList[2])]
 		ETFInfoToWrite = self.ETFInfoToWrite
 		excel = excelSetup(ETFInfoToWrite,row)
 		excel.etfInfoSetup()
@@ -268,79 +288,80 @@ class excelSetup:
 
 	def etfInfoSetup(self):
 		# Widen the first column to make the text clearer.
-		worksheet.set_column('A:E', 30)
+		worksheetToWriteTo.set_column('A:F', 30)
 		#Add formating
-		format = workbook.add_format()
+		format = workbookToWriteTo.add_format()
 		format.set_text_wrap()
 		format.set_font_size(14)
 		format.set_font_name('Arial')
 		format.set_align('center')
 		# Write some data headers.
- 		worksheet.write('A1', 'ETF Name', format)
- 		worksheet.write('B1', 'Time Stamp', format)
- 		worksheet.write('C1', 'Efficiency', format)
- 		worksheet.write('D1', 'Tradability', format)
- 		worksheet.write('E1', 'Fit', format)
+ 		worksheetToWriteTo.write('A1', 'Ticker Symbol', format)
+ 		worksheetToWriteTo.write('B1', 'Fund Name', format)
+ 		worksheetToWriteTo.write('C1', 'Time Stamp', format)
+ 		worksheetToWriteTo.write('D1', 'Efficiency', format)
+ 		worksheetToWriteTo.write('E1', 'Tradability', format)
+ 		worksheetToWriteTo.write('F1', 'Fit', format)
  		# Start from the first cell below the headers.
  		row = self.row
  		col = 0
 
  		for etf in self.ETFInfoToWrite:
-			worksheet.write(self.row, col, etf, format)
+			worksheetToWriteTo.write(self.row, col, etf, format)
 			col += 1
 		col = 0
 
 	def maxfundsSetup(self):
 		# Widen the first column to make the text clearer.
-		worksheet.set_column('A:B', 40)
+		worksheetToWriteTo.set_column('A:B', 40)
 		#Add formating
-		format = workbook.add_format()
+		format = workbookToWriteTo.add_format()
 		format.set_text_wrap()
 		format.set_font_size(14)
 		format.set_font_name('Arial')
 		format.set_align('center')
 		# Write some data headers.
- 		worksheet.write('A1', 'ETF Name', format)
- 		worksheet.write('B1', 'Max Rating', format)
+ 		worksheetToWriteTo.write('A1', 'ETF Name', format)
+ 		worksheetToWriteTo.write('B1', 'Max Rating', format)
  		# Start from the first cell below the headers.
  		row = self.row
  		col = 0
 
  		for etf in self.ETFInfoToWrite:
-			worksheet.write(self.row, col, etf, format)
+			worksheetToWriteTo.write(self.row, col, etf, format)
 			col += 1
 		col = 0
 
 	def smartmoneySetup(self):
 		# Widen the first column to make the text clearer.
-		worksheet.set_column('A:G', 30)
+		worksheetToWriteTo.set_column('A:G', 30)
 		#Add formating
-		format = workbook.add_format()
+		format = workbookToWriteTo.add_format()
 		format.set_text_wrap()
 		format.set_font_size(14)
 		format.set_font_name('Arial')
 		format.set_align('center')
 		# Write some data headers.
-		worksheet.write('A1', 'Fund Name', format)
- 		worksheet.write('B1', 'Ticker Symbol', format)
- 		worksheet.write('C1', 'Total Return', format)
- 		worksheet.write('D1', 'Consistent Return', format)
- 		worksheet.write('E1', 'Preservation', format)
- 		worksheet.write('F1', 'Tax Efficiency', format)
- 		worksheet.write('G1', 'Expense', format)
+		worksheetToWriteTo.write('A1', 'Fund Name', format)
+ 		worksheetToWriteTo.write('B1', 'Ticker Symbol', format)
+ 		worksheetToWriteTo.write('C1', 'Total Return', format)
+ 		worksheetToWriteTo.write('D1', 'Consistent Return', format)
+ 		worksheetToWriteTo.write('E1', 'Preservation', format)
+ 		worksheetToWriteTo.write('F1', 'Tax Efficiency', format)
+ 		worksheetToWriteTo.write('G1', 'Expense', format)
  		# Start from the first cell below the headers.
  		row = self.row
  		col = 0
 
  		for etf in self.ETFInfoToWrite:
-			worksheet.write(self.row, col, etf, format)
+			worksheetToWriteTo.write(self.row, col, etf, format)
 			col += 1
 		col = 0
 #------------------------------------ CallToGo ------------------------------------------------------------------------------------------
 #Starts the application 
 def callToGo():
 	#Sets the height and width of the window
-	master.geometry("800x300") 
+	master.geometry("900x300") 
 	master.configure(background='#C1CDCD')
 	#Inits the application 
 	app = GUI()
@@ -349,7 +370,7 @@ def callToGo():
 	#Starts Tkinter
 	master.mainloop()
 	#close the workbook after the all the data is pulled and written to the excel file
-	workbook.close()
+	workbookToWriteTo.close()
 	#opens the excel file (tested on mac, but not on windows)
 	os.system("open ETFRatings.xlsx")
 
