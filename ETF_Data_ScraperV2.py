@@ -101,39 +101,36 @@ class GUI:
  				if(self.rootURLStr == "http://www.etf.com/"):
  					try:
  						myEtf.etfDotComInfo()
- 					except AttributeError:
- 						e = sys.exc_info()[0]
- 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
- 						e = ""
  					except:
  						e = sys.exc_info()[0]
- 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
+ 						self.ETFInfoToWrite = [etfSymbol]
+ 						ETFInfoToWrite = self.ETFInfoToWrite
+ 						excel = excelSetup(ETFInfoToWrite,row)
+						excel.etfInfoSetup()
  						e = ""
  					else:
  						pass
  				elif(self.rootURLStr == "http://www.maxfunds.com/funds/data.php?ticker="):
  					try:
  						myEtf.maxfundsDotComInfo()
- 					except AttributeError:
- 						e = sys.exc_info()[0]
- 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
- 						e = ""
  					except:
  						e = sys.exc_info()[0]
- 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
+ 						self.ETFInfoToWrite = [etfSymbol]
+ 						ETFInfoToWrite = self.ETFInfoToWrite
+ 						excel = excelSetup(ETFInfoToWrite,row)
+						excel.maxfundsSetup()
  						e = ""
  					else:
  						pass
  				elif(self.rootURLStr == "http://www.marketwatch.com/investing/Fund/"):
 					try:
  						myEtf.smartmoneyDotComInfo()
- 					except AttributeError:
- 						e = sys.exc_info()[0]
- 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
- 						e = ""
  					except:
  						e = sys.exc_info()[0]
- 						print etfSymbol + " Cannot Be Found in GUI " + str(e)
+ 						self.ETFInfoToWrite = [etfSymbol]
+ 						ETFInfoToWrite = self.ETFInfoToWrite
+ 						excel = excelSetup(ETFInfoToWrite,row)
+						excel.smartmoneySetup()
  						e = ""
  					else:
  						pass
@@ -166,10 +163,6 @@ class ETFDataCollector:
 			website = urllib2.urlopen(self.baseURL + self.etfSymbol)
 			sourceCode = website.read()
 			self.soup = BeautifulSoup(sourceCode)
-		except AttributeError:
-			e = sys.exc_info()[0]
-			print self.etfSymbol + " Cannot Be Found while parsing " + str(e)
-			e = ""
 		except:
 			e = sys.exc_info()[0]
 			print self.etfSymbol + " Cannot Be Found while parsing " + str(e)
@@ -225,12 +218,21 @@ class ETFDataCollector:
  		etfName = self.soup.find('div', class_="dataTop")
  		etfName = self.soup.find('h2')
  		etfName = str(etfName.text)
+ 		endIndex = etfName.find('(')
+ 		endIndex = int(endIndex)
+ 		fullEtfName = etfName[0:endIndex]
+ 		startIndex = endIndex + 1
+ 		startIndex = int(startIndex)
+ 		lastIndex = etfName.find(')')
+ 		lastIndex = int(lastIndex)
+ 		lastIndex = lastIndex - 1
+ 		tickerSymbol = etfName[startIndex: lastIndex]
  		#get ETFs Max rating score
  		etfMaxRating = self.soup.find('span', class_="maxrating")
  		etfMaxRating = str(etfMaxRating.text)
 
  		#create array to store name and rating 
- 		self.ETFInfoToWrite = [etfName, int(etfMaxRating)]
+ 		self.ETFInfoToWrite = [fullEtfName, tickerSymbol, int(etfMaxRating)]
  		ETFInfoToWrite = self.ETFInfoToWrite
  		excel = excelSetup(ETFInfoToWrite,row)
 		excel.maxfundsSetup()
@@ -313,7 +315,7 @@ class excelSetup:
 
 	def maxfundsSetup(self):
 		# Widen the first column to make the text clearer.
-		worksheetToWriteTo.set_column('A:B', 40)
+		worksheetToWriteTo.set_column('A:C', 40)
 		#Add formating
 		format = workbookToWriteTo.add_format()
 		format.set_text_wrap()
@@ -322,7 +324,8 @@ class excelSetup:
 		format.set_align('center')
 		# Write some data headers.
  		worksheetToWriteTo.write('A1', 'ETF Name', format)
- 		worksheetToWriteTo.write('B1', 'Max Rating', format)
+ 		worksheetToWriteTo.write('B1', 'Ticker Symbol', format)
+ 		worksheetToWriteTo.write('C1', 'Max Rating', format)
  		# Start from the first cell below the headers.
  		row = self.row
  		col = 0
