@@ -140,8 +140,6 @@ class GUI:
 			master.destroy()
 
 		etfSubmitBtn = Button(master, text="Choose File", command=cleanAndReturnListofEtfs, font = "Arial 16 ")
-		#etfEntry.pack(padx=5, pady=5, fill=X)
-		#etfEntry.config(background="white")
 		etfSubmitBtn.pack(padx=5, pady=10)
 		etfSubmitBtn.config(highlightbackground="#C1CDCD")
            	
@@ -154,11 +152,6 @@ class ETFDataCollector:
 		self.ETFInfoToWrite = []
 
 	def parseTargetWebPage(self):
-		#****The 3 web URLs aviable to scrape*****
-		#maxfunds: http://www.maxfunds.com/funds/data.php?ticker=VTSMX
-		#etf.com: http://www.etf.com/spy
-		#Smartmoney: http://www.marketwatch.com/investing/Fund/OARMX
-		#get document source code 
 		try:
 			website = urllib2.urlopen(self.baseURL + self.etfSymbol)
 			sourceCode = website.read()
@@ -182,16 +175,12 @@ class ETFDataCollector:
 		etfTicker = str(etfTicker)
 		etfLongName = etfLongName.text
 		etfLongName = str(etfLongName)
-		#etfFullName = etfTicker + ' - ' + etfLongName
-		#etfFullName = str(etfFullName)
-		#print etfFullName
 
 		#get the time stamp for the data scraped 
 		etfInfoTimeStamp = self.soup.find('div', class_="footNote")
 		dataTimeStamp = etfInfoTimeStamp.contents[1]
 		formatedTimeStamp =  'As of ' + dataTimeStamp.text
 		formatedTimeStamp = str(formatedTimeStamp)
-		#print formatedTimeStamp
 
 		#create vars 
 		etfScores = []
@@ -266,7 +255,6 @@ class ETFDataCollector:
  			startIndex2 = lipperScore.find('="')
  			startIndex2 = startIndex2 + 2
  			endIndex2 = lipperScore.find('" ')
- 			#At this point I have the ex: "Total Return: 5"
  			lipperScore = lipperScore[startIndex2:endIndex2]
  			seperatorIndex = lipperScore.find(':')
  			endIndex3 = seperatorIndex
@@ -377,6 +365,5 @@ def callToGo():
 	#opens the excel file (tested on mac, but not on windows)
 	os.system("open ETFRatings.xlsx")
 
-#Starts the application 
-callToGo()
 
+callToGo()
